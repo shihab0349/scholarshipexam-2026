@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin - Scholarship Exam 2026</title>
+<style>
+:root{--bg:#f1f5fb;--card:#fff;--text:#14213d;--muted:#5b6b86;--line:#d9e1ef;--btn:#2358d8}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--card:#10151f;--text:#e8edf7;--muted:#93a1ba;--line:#273044}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:14px}
+.wrap{max-width:900px;margin:0 auto}
+.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid var(--line)}
+input,textarea,button{font:inherit;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);width:100%;margin:4px 0 10px}
+button{background:var(--btn);color:#fff;border:0;cursor:pointer;font-weight:600;width:auto;padding:10px 16px;margin:0}
+button.del{background:#c93030;padding:6px 10px;font-size:.85rem}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}.tabs button{background:var(--card);color:var(--text);border:1px solid var(--line)}.tabs button.on{background:var(--btn);color:#fff}
+label{font-weight:600;font-size:.9rem}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;border-bottom:1px solid var(--line);padding:10px 0}
+.row:last-child{border:0}.row small{color:var(--muted);display:block}
+.pane{display:none}.pane.on{display:block}
+#login{max-width:340px;margin:12vh auto}
+img.t{width:46px;height:46px;border-radius:50%;object-fit:cover;margin-right:10px;background:var(--line)}
+.flex{display:flex;align-items:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div id="login" class="card">
+  <h3>Admin login</h3>
+  <input id="pw" type="password" placeholder="Password">
+  <button id="loginBtn">Login</button>
+  <p id="lerr" style="color:#d33"></p>
+</div>
+
+<div id="panel" style="display:none">
+  <div class="tabs">
+    <button data-t="p1" class="on">Submissions</button>
+    <button data-t="p2">Messages & Facebook</button>
+    <button data-t="p3">Student showcase</button>
+    <button id="out" style="margin-left:auto">Logout</button>
+  </div>
+
+  <div id="p1" class="pane on card">
+    <b id="count"></b>
+    <input id="q" placeholder="Search name / mobile / institution" style="margin-top:10px">
+    <div id="rows"></div>
+  </div>
+
+  <div id="p2" class="pane card">
+    <label>Note at the top of the form (optional)</label><textarea id="topNote" rows="2"></textarea>
+    <label>Title after submit</label><input id="successTitle">
+    <label>Message after submit</label><textarea id="successMessage" rows="3"></textarea>
+    <label>Facebook box name</label><input id="fbName">
+    <label>Facebook page link</label><input id="fbLink" placeholder="https://www.facebook.com/yourpage">
+    <button id="saveCfg">Save</button> <span id="cmsg"></span>
+  </div>
+
+  <div id="p3" class="pane card">
+    <label>Photo</label><input type="file" id="photo" accept="image/*">
+    <label>Name</label><input id="sName">
+    <label>Academic qualification</label><input id="sQual" placeholder="e.g. GPA 5.00 in SSC, Dhaka College">
+    <label>Text</label><textarea id="sText" rows="2"></textarea>
+    <button id="addS">Add student</button> <span id="smsg"></span>
+    <h4>Added students</h4><div id="sList"></div>
+  </div>
+</div>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxNUhjVqXwI1qALRQlQpIGRXJW3bw_9aC_EHHLHUO4lXMUnuT0MNEx3MoAH2ajOvE57/exec";
+const $=s=>document.querySelector(s);
+let PW=sessionStorage.getItem('pw')||'', ROWS=[];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function api(action,extra={}){
+  const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,password:PW,...extra})});
+  return r.json();
+}
+async function load(){
+  const j=await api('list');
+  if(!j.ok){PW='';sessionStorage.removeItem('pw');$('#panel').style.display='none';$('#login').style.display='block';$('#lerr').textContent=j.error||'Error';return}
+  $('#login').style.display='none';$('#panel').style.display='block';
+  ROWS=j.rows;drawRows();
+  for(const k of ['topNote','successTitle','successMessage','fbName','fbLink']) $('#'+k).value=j.config[k]||'';
+  $('#sList').innerHTML=j.showcase.map(s=>`<div class="row"><div class="flex">${s.photo?`<img class="t" src="${esc(s.photo)}">`:''}<div><b>${esc(s.name)}</b><small>${esc(s.qualification)}</small></div></div><button class="del" onclick="delS('${esc(s.id)}')">Delete</button></div>`).join('')||'<small>None yet</small>';
+}
+function drawRows(){
+  const q=$('#q').value.toLowerCase();
+  const list=ROWS.filter(r=>!q||(r.name+r.mobile+r.sscInst+r.hscInst).toLowerCase().includes(q));
+  $('#count').textContent=`Total: ${ROWS.length}`+(q?` (showing ${list.length})`:'');
+  $('#rows').innerHTML=list.map(r=>`<div class="row"><div><b>${esc(r.name)}</b> - ${esc(r.mobile)}<small>Father: ${esc(r.father)} | Mother: ${esc(r.mother)}</small><small>SSC: ${esc(r.sscInst)} (${esc(r.sscGroup)}, GPA ${esc(r.sscGpa)})</small><small>HSC: ${esc(r.hscInst)} (${esc(r.hscGroup)})</small><small>${esc(r.address)}</small><small>${esc(r.time)}</small></div><button class="del" onclick="del('${esc(r.id)}','${esc(r.name)}')">Delete</button></div>`).join('')||'<small>No submissions</small>';
+}
+async function del(id,name){ if(!confirm('Delete '+name+'?'))return; const j=await api('delete',{id}); if(j.ok)load(); else alert(j.error); }
+async function delS(id){ if(!confirm('Delete this student?'))return; const j=await api('deleteStudent',{id}); if(j.ok)load(); else alert(j.error); }
+
+$('#loginBtn').onclick=()=>{PW=$('#pw').value;sessionStorage.setItem('pw',PW);load()};
+$('#pw').onkeydown=e=>{if(e.key==='Enter')$('#loginBtn').click()};
+$('#out').onclick=()=>{sessionStorage.removeItem('pw');location.reload()};
+$('#q').oninput=drawRows;
+document.querySelectorAll('.tabs [data-t]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs [data-t]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));$('#'+b.dataset.t).classList.add('on');
+});
+
+$('#saveCfg').onclick=async()=>{
+  const config={};for(const k of ['topNote','successTitle','successMessage','fbName','fbLink'])config[k]=$('#'+k).value;
+  const j=await api('saveConfig',{config});$('#cmsg').textContent=j.ok?'Saved ✔':(j.error||'Error');
+};
+
+function resize(file){return new Promise((res,rej)=>{
+  const img=new Image();img.onload=()=>{
+    const c=document.createElement('canvas');c.width=c.height=400;const x=c.getContext('2d');
+    const s=Math.min(img.width,img.height);x.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,400,400);
+    res(c.toDataURL('image/jpeg',.85).split(',')[1]);
+  };img.onerror=rej;img.src=URL.createObjectURL(file);
+})}
+$('#addS').onclick=async()=>{
+  const name=$('#sName').value.trim();if(!name){$('#smsg').textContent='Name is required';return}
+  $('#smsg').textContent='Uploading...';
+  const f=$('#photo').files[0];
+  const j=await api('addStudent',{name,qualification:$('#sQual').value,text:$('#sText').value,photoBase64:f?await resize(f):''});
+  if(j.ok){['sName','sQual','sText','photo'].forEach(i=>$('#'+i).value='');$('#smsg').textContent='Added ✔';load()}else $('#smsg').textContent=j.error||'Error';
+};
+
+if(PW)load();
+</script>
+</body>
+</html>
