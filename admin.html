@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0c1b3d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scholarship Admin">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Admin - Scholarship Exam 2026</title>
 <style>
 :root{--bg:#f1f5fb;--card:#fff;--text:#14213d;--muted:#5b6b86;--line:#d9e1ef;--btn:#2358d8}
@@ -15,7 +20,10 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-appl
 input,textarea,button{font:inherit;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);width:100%;margin:4px 0 10px}
 button{background:var(--btn);color:#fff;border:0;cursor:pointer;font-weight:600;width:auto;padding:10px 16px;margin:0}
 button.del{background:#c93030;padding:6px 10px;font-size:.85rem}
-.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}.tabs button{background:var(--card);color:var(--text);border:1px solid var(--line)}.tabs button.on{background:var(--btn);color:#fff}
+button.sm{padding:6px 10px;font-size:.85rem}
+button.grey{background:#6b7280}
+button.ok{background:#1f8f4e}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}.tabs button{background:var(--card);color:var(--text);border:1px solid var(--line)}.tabs button.on{background:var(--btn);color:#fff;border-color:var(--btn)}
 label{font-weight:600;font-size:.9rem}
 .row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;border-bottom:1px solid var(--line);padding:10px 0}
 .row:last-child{border:0}.row small{color:var(--muted);display:block}
@@ -23,6 +31,22 @@ label{font-weight:600;font-size:.9rem}
 #login{max-width:340px;margin:12vh auto}
 img.t{width:46px;height:46px;border-radius:50%;object-fit:cover;margin-right:10px;background:var(--line)}
 .flex{display:flex;align-items:center}
+.acts{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.pill{background:#e0412f;color:#fff;border-radius:20px;padding:2px 10px;font-size:.8rem;font-weight:700}
+.tag{background:#1f8f4e;color:#fff;border-radius:6px;padding:1px 7px;font-size:.7rem;font-weight:700;margin-left:6px;vertical-align:middle}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:12px}.top img{width:38px;height:38px;border-radius:50%}.top b{flex:1}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#14213d;color:#fff;padding:12px 18px;border-radius:12px;display:none;z-index:99;max-width:90%;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+.st{color:var(--muted);font-size:.88rem;margin:2px 0 12px}
+hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+.ed{min-height:80px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--card);margin:4px 0 6px;outline:none;line-height:1.5}
+.ed:focus{outline:2px solid #2358d8}
+.tb{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px}
+.tb .tbb{padding:6px 10px;font-size:.9rem;background:var(--card);color:var(--text);border:1px solid var(--line);min-width:36px}
+.tb select{width:auto;margin:0;padding:6px;font-size:.85rem}
+.tb .sw{width:24px;height:24px;border-radius:50%;padding:0;min-width:0;border:2px solid var(--line)}
+.tb input[type=color]{width:34px;height:30px;padding:1px;margin:0}
+.tb .lb{font-size:.75rem;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -36,66 +60,319 @@ img.t{width:46px;height:46px;border-radius:50%;object-fit:cover;margin-right:10p
 </div>
 
 <div id="panel" style="display:none">
+  <div class="top"><img src="icon-192.png" alt=""><b>Scholarship Admin</b><span id="badge" class="pill" style="display:none"></span></div>
   <div class="tabs">
     <button data-t="p1" class="on">Submissions</button>
-    <button data-t="p2">Messages & Facebook</button>
+    <button data-t="p2">Messages &amp; Facebook</button>
     <button data-t="p3">Student showcase</button>
-    <button id="out" style="margin-left:auto">Logout</button>
+    <button data-t="p4">Profile</button>
   </div>
 
+  <!-- SUBMISSIONS -->
   <div id="p1" class="pane on card">
-    <b id="count"></b>
-    <input id="q" placeholder="Search name / mobile / institution" style="margin-top:10px">
+    <div class="bar">
+      <b id="count"></b><span id="newPill" class="pill" style="display:none"></span>
+    </div>
+    <div class="bar">
+      <button id="dlAll">Download all (PDF)</button>
+      <button id="seenAll" class="grey sm">Mark all as seen</button>
+    </div>
+    <input id="q" placeholder="Search name / mobile / institution">
     <div id="rows"></div>
   </div>
 
+  <!-- MESSAGES -->
   <div id="p2" class="pane card">
-    <label>Note at the top of the form (optional)</label><textarea id="topNote" rows="2"></textarea>
+    <label>Note at the top of the form (optional)</label><div id="topNoteEd" class="ed" contenteditable="true"></div>
     <label>Title after submit</label><input id="successTitle">
-    <label>Message after submit</label><textarea id="successMessage" rows="3"></textarea>
+    <label>Message after submit</label><div id="successMessageEd" class="ed" contenteditable="true"></div>
+    <div class="st">Select text, then use the buttons above the box (bold, italic, underline, size, text color, highlight). Pick colors that are readable on both white and black backgrounds.</div>
     <label>Facebook box name</label><input id="fbName">
     <label>Facebook page link</label><input id="fbLink" placeholder="https://www.facebook.com/yourpage">
     <button id="saveCfg">Save</button> <span id="cmsg"></span>
   </div>
 
+  <!-- SHOWCASE -->
   <div id="p3" class="pane card">
     <label>Photo</label><input type="file" id="photo" accept="image/*">
     <label>Name</label><input id="sName">
     <label>Academic qualification</label><input id="sQual" placeholder="e.g. GPA 5.00 in SSC, Dhaka College">
     <label>Text</label><textarea id="sText" rows="2"></textarea>
-    <button id="addS">Add student</button> <span id="smsg"></span>
+    <button id="addS">Add student</button> <button id="cancelS" style="display:none;background:#666">Cancel edit</button> <span id="smsg"></span>
     <h4>Added students</h4><div id="sList"></div>
+  </div>
+
+  <!-- PROFILE -->
+  <div id="p4" class="pane card">
+    <h3 style="margin-top:0">Admin profile</h3>
+
+    <label>App</label>
+    <div class="bar"><button id="installBtn">Install App</button></div>
+    <div class="st" id="installSt"></div>
+
+    <hr>
+    <label>Notifications</label>
+    <div class="bar">
+      <button id="notifBtn">Enable notifications</button>
+      <button id="testBtn" class="grey sm">Send test</button>
+    </div>
+    <div class="st" id="notifSt"></div>
+
+    <label>Push alerts when the app is closed (optional)</label>
+    <input id="ntfyTopic" placeholder="e.g. authentic-sch-7x92kq-alerts">
+    <div class="st">Install the free <b>ntfy</b> app, subscribe to this same topic name, and you will get a phone notification for every new registration even when this app is closed. Use a long, random topic name and keep it private. No personal data is sent.</div>
+    <button id="saveNtfy">Save</button> <span id="nmsg"></span>
+
+    <hr>
+    <button id="out" class="grey">Logout</button>
   </div>
 </div>
 </div>
+<div id="toast"></div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxNUhjVqXwI1qALRQlQpIGRXJW3bw_9aC_EHHLHUO4lXMUnuT0MNEx3MoAH2ajOvE57/exec";
 const $=s=>document.querySelector(s);
-let PW=sessionStorage.getItem('pw')||'', ROWS=[];
+let PW=sessionStorage.getItem('pw')||'', ROWS=[], SHOW=[], editId=null, CUR=[], pollTimer=null;
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LS={get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+function cleanHtml(h){
+  h=String(h||'');
+  if(!/<[a-z][\s\S]*>/i.test(h)) return esc(h).replace(/\n/g,'<br>');
+  const doc=new DOMParser().parseFromString('<body>'+h+'</body>','text/html');
+  const OK={B:1,STRONG:1,I:1,EM:1,U:1,S:1,STRIKE:1,BR:1,DIV:1,P:1,SPAN:1};
+  const PROP=/^(color|background-color|font-size|font-weight|font-style|text-decoration|text-decoration-line|text-align)$/;
+  const VAL=/^[#\w\s.,()%-]+$/;
+  (function walk(n){
+    [...n.childNodes].forEach(c=>{
+      if(c.nodeType===3) return;
+      if(c.nodeType!==1){c.remove();return}
+      if(!OK[c.tagName]){walk(c);while(c.firstChild)c.parentNode.insertBefore(c.firstChild,c);c.remove();return}
+      [...c.attributes].forEach(a=>{if(a.name!=='style')c.removeAttribute(a.name)});
+      if(c.hasAttribute('style')){
+        const keep=[];
+        c.getAttribute('style').split(';').forEach(d=>{const i=d.indexOf(':');if(i<0)return;const k=d.slice(0,i).trim().toLowerCase(),v=d.slice(i+1).trim();if(PROP.test(k)&&VAL.test(v)&&!/url|expression|import/i.test(v))keep.push(k+':'+v)});
+        keep.length?c.setAttribute('style',keep.join(';')):c.removeAttribute('style');
+      }
+      walk(c);
+    });
+  })(doc.body);
+  return doc.body.innerHTML;
+}
+
+/* ---------- rich text editors (bold / italic / underline / size / color / highlight) ---------- */
+const RANGES={};
+document.addEventListener('selectionchange',()=>{
+  const sel=getSelection();if(!sel.rangeCount)return;
+  document.querySelectorAll('.ed').forEach(ed=>{if(ed.contains(sel.anchorNode))RANGES[ed.id]=sel.getRangeAt(0).cloneRange()});
+});
+function run(id,cmd,val){
+  const ed=$('#'+id);ed.focus();
+  const r=RANGES[id];if(r){const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}
+  document.execCommand('styleWithCSS',false,true);
+  document.execCommand(cmd,false,val==null?null:val);
+}
+function mkToolbar(id){
+  const ed=$('#'+id),tb=document.createElement('div');tb.className='tb';
+  const btn=(label,title,fn,extra)=>{const b=document.createElement('button');b.type='button';b.className='tbb'+(extra&&extra.sw?' sw':'');b.innerHTML=label;b.title=title;
+    if(extra&&extra.bg)b.style.background=extra.bg;
+    b.addEventListener('mousedown',e=>e.preventDefault());b.addEventListener('click',fn);tb.appendChild(b)};
+  btn('<b>B</b>','Bold',()=>run(id,'bold'));
+  btn('<i>I</i>','Italic',()=>run(id,'italic'));
+  btn('<u>U</u>','Underline',()=>run(id,'underline'));
+  const sz=document.createElement('select');
+  sz.innerHTML='<option value="">Size</option><option value="2">Small</option><option value="3">Normal</option><option value="5">Large</option><option value="6">X-Large</option>';
+  sz.onchange=()=>{if(sz.value)run(id,'fontSize',sz.value);sz.value=''};tb.appendChild(sz);
+  const lb1=document.createElement('span');lb1.className='lb';lb1.textContent='Color';tb.appendChild(lb1);
+  ['#e11d48','#ea580c','#ca8a04','#16a34a','#2563eb','#7c3aed','#ffffff','#000000'].forEach(c=>btn('',c,()=>run(id,'foreColor',c),{sw:1,bg:c}));
+  const ci=document.createElement('input');ci.type='color';ci.value='#e11d48';ci.title='Custom text color';ci.oninput=()=>run(id,'foreColor',ci.value);tb.appendChild(ci);
+  const lb2=document.createElement('span');lb2.className='lb';lb2.textContent='Highlight';tb.appendChild(lb2);
+  ['#fde047','#86efac','#f9a8d4','#67e8f9'].forEach(c=>btn('',c,()=>{run(id,'hiliteColor',c);run(id,'foreColor','#111111')},{sw:1,bg:c}));
+  btn('&#10005;','Remove highlight',()=>run(id,'hiliteColor','transparent'));
+  btn('Clear','Clear all formatting of selection',()=>run(id,'removeFormat'));
+  ed.parentNode.insertBefore(tb,ed);
+  ed.addEventListener('paste',e=>{e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,t)});
+}
+const setEd=(id,v)=>{$('#'+id).innerHTML=cleanHtml(v||'')};
+const getEd=id=>{const ed=$('#'+id);return ed.textContent.trim()?cleanHtml(ed.innerHTML):''};
+mkToolbar('topNoteEd');mkToolbar('successMessageEd');
+
+let tt;function toast(m,ms=3500){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(tt);if(ms)tt=setTimeout(()=>t.style.display='none',ms)}
 
 async function api(action,extra={}){
   const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,password:PW,...extra})});
   return r.json();
 }
+
+/* ================= data / lists ================= */
 async function load(){
   const j=await api('list');
   if(!j.ok){PW='';sessionStorage.removeItem('pw');$('#panel').style.display='none';$('#login').style.display='block';$('#lerr').textContent=j.error||'Error';return}
   $('#login').style.display='none';$('#panel').style.display='block';
-  ROWS=j.rows;drawRows();
-  for(const k of ['topNote','successTitle','successMessage','fbName','fbLink']) $('#'+k).value=j.config[k]||'';
-  $('#sList').innerHTML=j.showcase.map(s=>`<div class="row"><div class="flex">${s.photo?`<img class="t" src="${esc(s.photo)}">`:''}<div><b>${esc(s.name)}</b><small>${esc(s.qualification)}</small></div></div><button class="del" onclick="delS('${esc(s.id)}')">Delete</button></div>`).join('')||'<small>None yet</small>';
+  ROWS=j.rows;
+  for(const k of ['successTitle','fbName','fbLink','ntfyTopic']) $('#'+k).value=j.config[k]||'';
+  setEd('topNoteEd',j.config.topNote);setEd('successMessageEd',j.config.successMessage);
+  SHOW=j.showcase;
+  $('#sList').innerHTML=SHOW.map((s,i)=>`<div class="row"><div class="flex">${s.photo?`<img class="t" src="${esc(s.photo)}">`:''}<div><b>${esc(s.name)}</b><small>${esc(s.qualification)}</small></div></div><div style="display:flex;gap:6px"><button class="sm" onclick="editS(${i})">Edit</button><button class="del" onclick="delS('${esc(s.id)}')">Delete</button></div></div>`).join('')||'<small>None yet</small>';
+  handleIds(ROWS.map(r=>r.id));
+  startPolling();
 }
+
+/* ================= new-registration tracking ================= */
+let seen=new Set(LS.get('seen',[])), notified=new Set(LS.get('notified',[]));
+const persist=()=>{LS.set('seen',[...seen]);LS.set('notified',[...notified])};
+const unseen=()=>CUR.filter(x=>!seen.has(x));
+
+async function handleIds(ids){
+  CUR=ids;
+  if(!LS.get('init',false)){seen=new Set(ids);notified=new Set(ids);persist();LS.set('init',true)}   // first run: existing ones are not "new"
+  const fresh=ids.filter(x=>!notified.has(x));
+  if(fresh.length){
+    fresh.forEach(x=>notified.add(x));persist();
+    toast(`${fresh.length} new registration${fresh.length>1?'s':''} received`);
+    notify(fresh.length);
+    await refreshRows();
+  }
+  drawRows();updateBadge();
+}
+async function refreshRows(){
+  const j=await api('list');
+  if(j.ok){ROWS=j.rows;CUR=ROWS.map(r=>r.id)}
+}
+function updateBadge(){
+  const n=unseen().length;
+  const b=$('#badge'),p=$('#newPill');
+  b.style.display=p.style.display=n?'inline-block':'none';
+  b.textContent=p.textContent=n+' new';
+  try{ if(n) navigator.setAppBadge&&navigator.setAppBadge(n); else navigator.clearAppBadge&&navigator.clearAppBadge() }catch(e){}
+}
+async function poll(){
+  if(!PW) return;
+  try{const j=await api('ids');if(j.ok)handleIds(j.ids)}catch(e){}
+}
+function startPolling(){
+  if(pollTimer) return;
+  pollTimer=setInterval(poll,30000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});
+}
+$('#seenAll').onclick=()=>{seen=new Set(CUR);persist();drawRows();updateBadge()};
+
 function drawRows(){
   const q=$('#q').value.toLowerCase();
-  const list=ROWS.filter(r=>!q||(r.name+r.mobile+r.sscInst+r.hscInst).toLowerCase().includes(q));
+  const list=[...ROWS].reverse().filter(r=>!q||(r.name+r.mobile+r.sscInst+r.hscInst).toLowerCase().includes(q));
   $('#count').textContent=`Total: ${ROWS.length}`+(q?` (showing ${list.length})`:'');
-  $('#rows').innerHTML=list.map(r=>`<div class="row"><div><b>${esc(r.name)}</b> - ${esc(r.mobile)}<small>Father: ${esc(r.father)} | Mother: ${esc(r.mother)}</small><small>SSC: ${esc(r.sscInst)} (${esc(r.sscGroup)}, GPA ${esc(r.sscGpa)})</small><small>HSC: ${esc(r.hscInst)} (${esc(r.hscGroup)})</small><small>${esc(r.address)}</small><small>${esc(r.time)}</small></div><button class="del" onclick="del('${esc(r.id)}','${esc(r.name)}')">Delete</button></div>`).join('')||'<small>No submissions</small>';
+  $('#rows').innerHTML=list.map(r=>`<div class="row"><div><b>${esc(r.name)}</b>${seen.has(r.id)?'':'<span class="tag">NEW</span>'} - ${esc(r.mobile)}<small>Father: ${esc(r.father)} | Mother: ${esc(r.mother)}</small><small>SSC: ${esc(r.sscInst)} (${esc(r.sscGroup)}, GPA ${esc(r.sscGpa)})</small><small>HSC: ${esc(r.hscInst)} (${esc(r.hscGroup)})</small><small>${esc(r.address)}</small><small>${esc(r.time)}</small></div><div class="acts"><button class="sm ok" onclick="dlOne('${esc(r.id)}')">PDF</button><button class="del" onclick="del('${esc(r.id)}','${esc(r.name)}')">Delete</button></div></div>`).join('')||'<small>No submissions</small>';
 }
-async function del(id,name){ if(!confirm('Delete '+name+'?'))return; const j=await api('delete',{id}); if(j.ok)load(); else alert(j.error); }
+async function del(id,name){ if(!confirm('Delete '+name+'?'))return; const j=await api('delete',{id}); if(j.ok){await refreshRows();drawRows();updateBadge()} else alert(j.error); }
 async function delS(id){ if(!confirm('Delete this student?'))return; const j=await api('deleteStudent',{id}); if(j.ok)load(); else alert(j.error); }
 
+/* ================= PDF downloads (one student / everyone) ================= */
+let libs;
+const loadScript=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load PDF library. Check your internet.'));document.head.appendChild(s)});
+const loadLibs=()=>libs||(libs=Promise.all([
+  loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+  loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')]).catch(e=>{libs=null;throw e}));
+
+const FONT='system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Bengali",Arial,sans-serif';
+function pageShell(inner,n,total,title){
+  const d=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  return `<div style="width:794px;height:1123px;padding:36px 40px;background:#fff;color:#111;font-family:${FONT};position:relative;overflow:hidden;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:14px;border-bottom:3px solid #e9b949;padding-bottom:12px;margin-bottom:16px">
+    <img src="logo.jpg" style="width:60px;height:60px;border-radius:50%;object-fit:cover;transform:scale(1.08)">
+    <div style="flex:1"><div style="font-size:22px;font-weight:700;color:#0c1b3d">Scholarship Exam - 2026</div><div style="font-size:13px;color:#445">Organised by AUTHENTIC FOUNDATION</div></div>
+    <div style="text-align:right;font-size:12px;color:#445"><b style="font-size:14px;color:#0c1b3d">${esc(title)}</b><br>${d}</div>
+  </div>
+  ${inner}
+  <div style="position:absolute;left:40px;right:40px;bottom:18px;font-size:11px;color:#778;display:flex;justify-content:space-between"><span>AUTHENTIC FOUNDATION - Student Registration Portal</span><span>Page ${n} of ${total}</span></div></div>`;
+}
+function block(r,i){
+  return `<div style="border:1px solid #cfd8e6;border-radius:10px;padding:11px 14px;margin-bottom:11px;font-size:13px;line-height:1.5;background:#fafcff">
+  <div style="display:flex;justify-content:space-between;gap:10px"><b style="font-size:15px;color:#0c1b3d">${i}. ${esc(r.name)}</b><b>${esc(r.mobile)}</b></div>
+  <div>Father: ${esc(r.father)} &nbsp;|&nbsp; Mother: ${esc(r.mother)}</div>
+  <div>SSC: ${esc(r.sscInst)} - ${esc(r.sscGroup)} - GPA ${esc(r.sscGpa)}</div>
+  <div>HSC: ${esc(r.hscInst)} - ${esc(r.hscGroup)}</div>
+  <div style="max-height:40px;overflow:hidden">Address: ${esc(r.address)}</div>
+  <div style="color:#778;font-size:11px">Registered: ${esc(r.time)}</div></div>`;
+}
+function singlePage(r){
+  const rows=[["Student's Name",r.name],["Father's Name",r.father],["Mother's Name",r.mother],["SSC Institution",r.sscInst],["SSC Group",r.sscGroup],["SSC GPA",r.sscGpa],["HSC Institution",r.hscInst],["HSC Current Group",r.hscGroup],["Address",r.address],["Mobile Number",r.mobile],["Registered on",r.time]];
+  return pageShell(`<div style="font-size:18px;font-weight:700;margin-bottom:12px;color:#0c1b3d">Student Information</div>
+  <table style="width:100%;border-collapse:collapse;font-size:15px">${rows.map(([k,v])=>`<tr><td style="width:34%;padding:12px 12px;border:1px solid #cfd8e6;background:#eef3fb;font-weight:600">${k}</td><td style="padding:12px 12px;border:1px solid #cfd8e6">${esc(v)}</td></tr>`).join('')}</table>`,1,1,'Student Info');
+}
+const waitImgs=el=>Promise.all([...el.querySelectorAll('img')].map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r})));
+
+async function makePdf(pages,filename){
+  toast('Preparing PDF...',0);
+  try{
+    await loadLibs();
+    const {jsPDF}=window.jspdf, pdf=new jsPDF({unit:'mm',format:'a4'});
+    const host=document.createElement('div');host.style.cssText='position:fixed;left:-10000px;top:0';document.body.appendChild(host);
+    for(let i=0;i<pages.length;i++){
+      toast(`Preparing page ${i+1} of ${pages.length}...`,0);
+      host.innerHTML=pages[i];const el=host.firstElementChild;
+      await waitImgs(el);
+      const canvas=await html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+      if(i)pdf.addPage();
+      pdf.addImage(canvas.toDataURL('image/jpeg',.88),'JPEG',0,0,210,297);
+    }
+    host.remove();
+    pdf.save(filename);
+    toast('PDF downloaded');
+  }catch(e){toast('PDF error: '+(e.message||e),6000)}
+}
+const safe=s=>String(s).replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'_')||'student';
+function dlOne(id){
+  const r=ROWS.find(x=>x.id===id);if(!r)return;
+  makePdf([singlePage(r)],`Student_${safe(r.name)}.pdf`);
+}
+$('#dlAll').onclick=()=>{
+  if(!ROWS.length){toast('No submissions yet');return}
+  const per=5,total=Math.ceil(ROWS.length/per),pages=[];
+  for(let p=0;p<total;p++){
+    const chunk=ROWS.slice(p*per,p*per+per);
+    pages.push(pageShell(`<div style="font-size:13px;color:#445;margin-bottom:10px">Total registered students: <b>${ROWS.length}</b></div>`+chunk.map((r,k)=>block(r,p*per+k+1)).join(''),p+1,total,'All Students'));
+  }
+  makePdf(pages,`All_Students_${new Date().toISOString().slice(0,10)}.pdf`);
+};
+
+/* ================= install app + notifications ================= */
+let deferred=null;
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+function installUI(){
+  const b=$('#installBtn'),st=$('#installSt');
+  if(standalone()){b.textContent='Installed ✔';b.disabled=true;st.textContent='You are using the installed app.';return}
+  b.textContent='Install App';b.disabled=false;
+  st.textContent=deferred?'Tap Install App to add this to your home screen.':'If nothing happens: Chrome menu (⋮) > Install app / Add to Home screen. On iPhone: Share > Add to Home Screen.';
+}
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;installUI()});
+addEventListener('appinstalled',()=>{deferred=null;installUI();toast('App installed')});
+$('#installBtn').onclick=async()=>{
+  if(deferred){deferred.prompt();await deferred.userChoice;deferred=null;installUI()}
+  else toast('Use browser menu (⋮) > Install app / Add to Home screen. iPhone: Share > Add to Home Screen.',6000);
+};
+installUI();
+
+function notifUI(){
+  const st=$('#notifSt'),b=$('#notifBtn');
+  if(!('Notification' in window)){st.textContent='This browser does not support notifications. Install the app first (iPhone needs iOS 16.4+ and the installed app).';b.disabled=true;return}
+  const p=Notification.permission;
+  b.textContent=p==='granted'?'Notifications on ✔':'Enable notifications';b.disabled=p==='granted';
+  st.textContent=p==='granted'?'You will be alerted about new registrations while the app is open or running in the background. For alerts when it is fully closed, use the ntfy option below.':p==='denied'?'Blocked. Allow notifications for this site in browser settings.':'Tap to allow alerts for new registrations.';
+}
+$('#notifBtn').onclick=async()=>{try{await Notification.requestPermission()}catch(e){}notifUI()};
+async function notify(n,custom){
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  const opts={body:custom||`${n} new registration${n>1?'s':''} received`,icon:'icon-192.png',badge:'icon-192.png',tag:'new-reg',renotify:true,data:{url:location.href}};
+  try{const reg=await navigator.serviceWorker.getRegistration();if(reg)return reg.showNotification('Scholarship Exam 2026',opts);new Notification('Scholarship Exam 2026',opts)}catch(e){}
+}
+$('#testBtn').onclick=()=>{if(Notification.permission!=='granted'){toast('Enable notifications first');return}notify(1,'Test notification: it works!');};
+notifUI();
+$('#saveNtfy').onclick=async()=>{const j=await api('saveConfig',{config:{ntfyTopic:$('#ntfyTopic').value.trim()}});$('#nmsg').textContent=j.ok?'Saved ✔':(j.error||'Error')};
+
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+/* ================= misc UI ================= */
 $('#loginBtn').onclick=()=>{PW=$('#pw').value;sessionStorage.setItem('pw',PW);load()};
 $('#pw').onkeydown=e=>{if(e.key==='Enter')$('#loginBtn').click()};
 $('#out').onclick=()=>{sessionStorage.removeItem('pw');location.reload()};
@@ -104,9 +381,9 @@ document.querySelectorAll('.tabs [data-t]').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tabs [data-t]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));$('#'+b.dataset.t).classList.add('on');
 });
-
 $('#saveCfg').onclick=async()=>{
-  const config={};for(const k of ['topNote','successTitle','successMessage','fbName','fbLink'])config[k]=$('#'+k).value;
+  const config={};for(const k of ['successTitle','fbName','fbLink'])config[k]=$('#'+k).value;
+  config.topNote=getEd('topNoteEd');config.successMessage=getEd('successMessageEd');
   const j=await api('saveConfig',{config});$('#cmsg').textContent=j.ok?'Saved ✔':(j.error||'Error');
 };
 
@@ -117,12 +394,22 @@ function resize(file){return new Promise((res,rej)=>{
     res(c.toDataURL('image/jpeg',.85).split(',')[1]);
   };img.onerror=rej;img.src=URL.createObjectURL(file);
 })}
+function resetS(){editId=null;['sName','sQual','sText','photo'].forEach(i=>$('#'+i).value='');$('#addS').textContent='Add student';$('#cancelS').style.display='none'}
+function editS(i){
+  const s=SHOW[i];editId=s.id;
+  $('#sName').value=s.name;$('#sQual').value=s.qualification;$('#sText').value=s.text;$('#photo').value='';
+  $('#addS').textContent='Save changes';$('#cancelS').style.display='inline-block';
+  $('#smsg').textContent='Editing. Leave photo empty to keep the current one.';
+  document.querySelectorAll('.tabs [data-t]')[2].click();scrollTo({top:0,behavior:'smooth'});
+}
+$('#cancelS').onclick=()=>{resetS();$('#smsg').textContent=''};
 $('#addS').onclick=async()=>{
   const name=$('#sName').value.trim();if(!name){$('#smsg').textContent='Name is required';return}
-  $('#smsg').textContent='Uploading...';
+  $('#smsg').textContent='Saving...';
   const f=$('#photo').files[0];
-  const j=await api('addStudent',{name,qualification:$('#sQual').value,text:$('#sText').value,photoBase64:f?await resize(f):''});
-  if(j.ok){['sName','sQual','sText','photo'].forEach(i=>$('#'+i).value='');$('#smsg').textContent='Added ✔';load()}else $('#smsg').textContent=j.error||'Error';
+  const body={name,qualification:$('#sQual').value,text:$('#sText').value,photoBase64:f?await resize(f):''};
+  const j=editId?await api('editStudent',{...body,id:editId}):await api('addStudent',body);
+  if(j.ok){const was=editId;resetS();$('#smsg').textContent=was?'Updated ✔':'Added ✔';load()}else $('#smsg').textContent=j.error||'Error';
 };
 
 if(PW)load();
