@@ -90,6 +90,7 @@ body.done main{margin-top:0;padding-top:64px}
   <section id="done" class="card">
     <h2 class="t" id="doneTitle"></h2>
     <p id="doneMsg"></p>
+    <p id="saveSt" class="hint" style="text-align:center;margin:-6px 0 16px"></p>
     <div id="showWrap" style="display:none"><div class="slider" id="slider"><div class="track" id="track"></div></div><div class="arrows" id="arrows"><button type="button" id="prev" aria-label="Previous">&#8249;</button><button type="button" id="next" aria-label="Next">&#8250;</button></div></div>
     <a id="fb" class="fb" href="#" target="_blank" rel="noopener">
       <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#1877F2"/><path fill="#fff" d="M26.6 38V26.2h4l.6-4.6h-4.6v-2.9c0-1.3.4-2.2 2.3-2.2h2.4v-4.1c-.4-.1-1.9-.2-3.5-.2-3.5 0-5.9 2.1-5.9 6v3.4h-4v4.6h4V38h4.7z"/></svg>
@@ -143,44 +144,76 @@ fetch(API_URL).then(r=>r.json()).then(d=>{
   if(CONFIG.topNote){const n=$('#topNote');n.innerHTML=cleanHtml(CONFIG.topNote);n.style.display='block'}
 }).catch(()=>{});
 
-/* ---- submit with retry (safe: same ID is never saved twice) ---- */
+/* ---- instant submit: success screen shows at once, saving continues in the background ---- */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const id=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2));
+const PEND='pendingSub';
+const store={get(){try{return JSON.parse(localStorage.getItem(PEND))}catch(e){return null}},set(v){try{localStorage.setItem(PEND,JSON.stringify(v))}catch(e){}},del(){try{localStorage.removeItem(PEND)}catch(e){}}};
+
 async function send(data){
-  let last='Network problem. Please try again.';
-  for(let i=0;i<5;i++){
+  for(let i=0;i<6;i++){
     try{
       const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'submit',data})});
       const j=await r.json();
       if(j.ok) return j;
-      if(!/lock|timed out|busy/i.test(j.error||'')) throw new Error(j.error);   // real validation error: stop
-      last=j.error;
-    }catch(e){ if(e.message && !/fetch|network|json|load/i.test(e.message)) throw e; }
-    await sleep(1500*(i+1)+Math.random()*1000);
+      if(!/lock|timed out|busy|too many|exceeded|service/i.test(j.error||'')){const e=new Error(j.error||'Error');e.fatal=true;throw e}
+    }catch(e){ if(e.fatal) throw e }
+    await sleep(Math.min(1200*(i+1),6000)+Math.random()*800);
   }
-  throw new Error(last);
+  throw new Error('network');
 }
 
-const id=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2));
+let sending=false;
+function status(t,cls){const el=$('#saveSt');if(!el)return;el.textContent=t;el.style.color=cls==='ok'?'#1f9d55':cls==='bad'?'#d33':'var(--muted)'}
+async function flushPending(){
+  const d=store.get();
+  if(!d||sending) return;
+  sending=true;
+  status('Saving your registration...');
+  try{
+    await send(d);
+    store.del();
+    status('\u2714 Your registration is saved','ok');
+  }catch(e){
+    if(e.fatal){                       // server rejected it: bring the form back
+      store.del();
+      $('#done').style.display='none';document.body.classList.remove('done');
+      $('#f').style.display='block';
+      const err=$('#err');err.textContent=e.message;err.style.display='block';
+      const b=$('#btn');b.disabled=false;b.textContent='Submit';
+      scrollTo({top:0,behavior:'smooth'});
+    }else status('Connection problem. Retrying automatically - please keep this page open.','bad');
+  }finally{sending=false}
+}
+addEventListener('online',flushPending);
+setInterval(()=>{if(store.get())flushPending()},15000);
+if(store.get()) flushPending();        // a submission that was not saved earlier is finished silently
 
-$('#f').addEventListener('submit',async e=>{
+$('#f').addEventListener('submit',e=>{
   e.preventDefault();
   const err=$('#err');err.style.display='none';
   const d=Object.fromEntries(new FormData(e.target));
   d.id=id;
+  const show=m=>{err.textContent=m;err.style.display='block'};
   for(const k of ['name','father','mother','sscInst','sscGroup','sscGpa','hscInst','hscGroup','address','mobile'])
     if(!String(d[k]||'').trim()) return show('Please fill in all required fields.');
   const g=parseFloat(d.sscGpa); if(!(g>=1&&g<=5)) return show('GPA must be between 1.00 and 5.00.');
   if(!/^01\d{9}$/.test(d.mobile)) return show('Enter a valid 11-digit mobile number (01XXXXXXXXX).');
-  const b=$('#btn');b.disabled=true;b.textContent='Submitting...';
-  try{ await send(d); showDone(); }
-  catch(x){ show(x.message||'Something went wrong. Please try again.'); b.disabled=false;b.textContent='Submit'; }
-  function show(m){err.textContent=m;err.style.display='block'}
+  $('#btn').disabled=true;
+  store.set(d);                        // safe copy on this phone until the server confirms
+  showDone();                          // no waiting
+  flushPending();
 });
 
 /* ---- success screen ---- */
 let LIST=[],modalOpen=false;
-async function showDone(){
-  if(!CONFIG){try{CONFIG=(await (await fetch(API_URL)).json()).config}catch(e){CONFIG={}}}
+function showDone(){
+  render(CONFIG||{});
+  if(!CONFIG) fetch(API_URL).then(r=>r.json()).then(d=>{CONFIG=d.config;render(CONFIG)}).catch(()=>{});
+  scrollTo({top:0,behavior:'smooth'});
+}
+let sliderOn=false;
+function render(CONFIG){
   $('#f').style.display='none';$('#topNote').style.display='none';
   $('#doneTitle').textContent=CONFIG.successTitle||'Thank you!';
   $('#doneMsg').innerHTML=cleanHtml(CONFIG.successMessage||'');
@@ -192,9 +225,8 @@ async function showDone(){
     $('#track').innerHTML=LIST.map((s,i)=>`<div class="s" data-i="${i}">${s.photo?`<img src="${esc(s.photo)}" alt="">`:'<div class="ph"></div>'}<b>${esc(s.name)}</b><small>${esc(s.qualification)}</small><p>${esc(s.text)}</p></div>`).join('');
     $('#showWrap').style.display='block';
     $('#track').onclick=e=>{const c=e.target.closest('.s');if(c)openModal(+c.dataset.i)};
-    startSlider();
+    if(!sliderOn){sliderOn=true;startSlider()}
   }
-  scrollTo({top:0,behavior:'smooth'});
 }
 
 /* ---- enlarged card ---- */
